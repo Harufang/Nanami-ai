@@ -28,7 +28,7 @@ class Chatbot:
         self.accelerator = Accelerator()
         # Initialize SpeechToText with the device
         self.stt = SpeechToText(stt_model_name, self.device)
-        self.tts = TextToSpeech(tts_model_name).to(self.device)
+        self.tts = TextToSpeech(tts_model_name,self.device)
         self.tokenizer = AutoTokenizer.from_pretrained(llama_model_name, use_auth_token=token)
         self.model = AutoModelForCausalLM.from_pretrained(llama_model_name, use_auth_token=token, low_cpu_mem_usage=True)
         self.model.to(self.device).half()  # Ensure model is on the right device and set to half precision
