@@ -24,13 +24,13 @@ def process_data():
     
 class Chatbot:
     def __init__(self, stt_model_name, tts_model_name, llama_model_name, token):
-        self.accelerator = Accelerator()  # Correctly initialized without fp16 argument
-        
-        self.stt = SpeechToText(stt_model_name)
-        self.tts = TextToSpeech(tts_model_name)
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # Make sure to use the set device
+        self.accelerator = Accelerator()
+        self.stt = SpeechToText(stt_model_name).to(self.device)
+        self.tts = TextToSpeech(tts_model_name).to(self.device)
         self.tokenizer = AutoTokenizer.from_pretrained(llama_model_name, use_auth_token=token)
         self.model = AutoModelForCausalLM.from_pretrained(llama_model_name, use_auth_token=token, low_cpu_mem_usage=True)
-        self.model = self.model.half()  # Manually setting the model to half precision
+        self.model.to(self.device).half()  # Ensure model is on the right device and set to half precision
         self.model = self.accelerator.prepare(self.model)
         self.model.eval()
 
@@ -44,20 +44,20 @@ class Chatbot:
             optimize_memory()
 
     def generate_response(self, text):
-        inputs = self.tokenizer.encode(text, return_tensors="pt").to(self.device)
-        attention_mask = torch.ones(inputs.shape, device=self.device)
+        inputs = self.tokenizer.encode(text, return_tensors="pt").to(self.device)  # Ensure inputs are moved to device
+        attention_mask = torch.ones(inputs.shape, device=self.device)  # Ensure the mask is on the same device
         scaler = GradScaler()
 
         with torch.no_grad():
             with autocast():
-                outputs = scaler.scale(self.model.generate(
+                outputs = self.model.generate(
                     input_ids=inputs,
                     attention_mask=attention_mask,
                     max_length=100,
                     num_return_sequences=1,
                     no_repeat_ngram_size=2,
                     pad_token_id=self.tokenizer.eos_token_id
-                ))
+                )
         response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
         return response
 
