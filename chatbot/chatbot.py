@@ -30,7 +30,7 @@ class Chatbot:
         attention_mask = torch.ones(inputs.shape, device=self.device)
         try:
             with torch.no_grad():
-                with enable_mixed_precision():  # Use the updated autocast
+                with enable_mixed_precision():  # Correctly using autocast
                     outputs = self.model.generate(
                         input_ids=inputs,
                         attention_mask=attention_mask,

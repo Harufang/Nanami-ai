@@ -30,17 +30,19 @@ def optimize_memory():
         
 def enable_mixed_precision():
     """Enable CUDA mixed precision via autocast."""
-    return torch.cuda.amp.autocast(device_type='cuda')
+    return torch.amp.autocast('cuda')
 
 # Example usage in a model
 def train_model(model, inputs):
-    model, inputs = accelerator.prepare(model, inputs)  # Prepare model and inputs
-    # Training logic here
-    outputs = model(inputs)
+    """Prepare model and inputs with Accelerator and perform training."""
+    model, inputs = accelerator.prepare(model, inputs)
+    with autocast():  # Use autocast for the scope of this function
+        outputs = model(inputs)
     return outputs
 
 # If you need to use autocast manually in some parts of your code
 def some_computation():
-    with torch.cuda.amp.autocast(device_type='cuda'):  # Explicitly using autocast if necessary
+    """Perform computation under autocast to utilize mixed precision."""
+    with autocast():  # Correctly using autocast without specifying device_type
         # computation logic here
         pass

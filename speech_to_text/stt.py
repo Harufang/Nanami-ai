@@ -28,12 +28,12 @@ class SpeechToText:
             waveform = resampler(waveform)
 
         try:
-            with torch.cuda.amp.autocast(device_type='cuda'):
+            with torch.cuda.amp.autocast():  # Correct usage
                 audio_input = self.processor(
                     waveform.squeeze(0).numpy(),
                     sampling_rate=sampling_rate,
                     return_tensors="pt",
-                    language='en'
+                    language='en'  # This assumes you're processing English audio
                 )
 
                 input_features = audio_input["input_features"].to(self.device)
@@ -48,12 +48,10 @@ class SpeechToText:
                         no_repeat_ngram_size=2,
                         pad_token_id=self.processor.tokenizer.pad_token_id
                     )
-
-            transcription = self.processor.batch_decode(generated_ids, skip_special_tokens=True)
-            return transcription[0]
         except Exception as e:
             import traceback
             traceback.print_exc()
             raise RuntimeError(f"Error during transcription: {str(e)}")
         finally:
             optimize_memory()
+
