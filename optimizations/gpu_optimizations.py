@@ -17,7 +17,7 @@ def liberer_memoire_gpu():
     torch.cuda.synchronize()
 
 def enable_mixed_precision():
-    return torch.amp.autocast('cuda')
+    return torch.cuda.amp.autocast()
 
 def clear_cache():
     torch.cuda.empty_cache()

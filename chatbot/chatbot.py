@@ -5,11 +5,11 @@ from optimizations.gpu_optimizations import accelerator, enable_mixed_precision,
 import torch
 
 class Chatbot:
-    def __init__(self, stt_model_name, tts_model_name, llama_model_name):
+    def __init__(self, stt_model_name, tts_model_name, llama_model_name, token):
         self.stt = SpeechToText(stt_model_name)
         self.tts = TextToSpeech(tts_model_name)
-        self.tokenizer = AutoTokenizer.from_pretrained(llama_model_name)
-        self.model = AutoModelForCausalLM.from_pretrained(llama_model_name, low_cpu_mem_usage=True)
+        self.tokenizer = AutoTokenizer.from_pretrained(llama_model_name, use_auth_token=token)
+        self.model = AutoModelForCausalLM.from_pretrained(llama_model_name, use_auth_token=token, low_cpu_mem_usage=True)
         self.model = self.model.half()
         self.model = accelerator.prepare(self.model)
         self.model = self.model.to(accelerator.device)
