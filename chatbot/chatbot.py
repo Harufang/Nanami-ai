@@ -9,6 +9,7 @@ from accelerate import Accelerator
 from torch.cuda.amp import autocast, GradScaler
 
 accelerator = Accelerator()
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Setting environment variables for CUDA memory management
 os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'garbage_collection_threshold:0.6,max_split_size_mb:4096,expandable_segments:True'
