@@ -4,14 +4,15 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from speech_to_text.stt import SpeechToText
 from text_to_speech.tts import TextToSpeech
 from optimizations.gpu_optimizations import accelerator, optimize_memory
+from optimizations.gpu_optimizations import enable_mixed_precision, optimize_memory
 from accelerate import Accelerator
 from torch.cuda.amp import autocast, GradScaler
+
+accelerator = Accelerator()
 
 # Setting environment variables for CUDA memory management
 os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'garbage_collection_threshold:0.6,max_split_size_mb:4096,expandable_segments:True'
 os.environ['USE_FP16'] = '1'  # This is not standard and may not affect Accelerator directly but is used in some contexts for clarity.
-
-from optimizations.gpu_optimizations import enable_mixed_precision, optimize_memory
 
 def process_data():
     with enable_mixed_precision():
