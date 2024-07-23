@@ -3,7 +3,7 @@ import torch
 from accelerate import Accelerator
 
 # Define environment variables for better GPU memory management
-os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'garbage_collection_threshold:0.6,max_split_size_mb:4096,expandable_segments:True'
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'garbage_collection_threshold:0.6,max_split_size_mb:4096'
 
 # Initialize Accelerator with mixed precision enabled
 accelerator = Accelerator(mixed_precision="fp16")  # Use "fp16" for floating point 16 precision
@@ -46,3 +46,8 @@ def clear_cache():
 def optimize_memory():
     """Optimize memory allocation settings."""
     torch.cuda.empty_cache()
+    os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'garbage_collection_threshold:0.6,max_split_size_mb:128'
+
+def enable_mixed_precision():
+    """Enable CUDA mixed precision via autocast."""
+    return torch.cuda.amp.autocast()
