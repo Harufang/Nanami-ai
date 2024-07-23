@@ -1,3 +1,2 @@
+# speech_to_text/__init__.py
 from .stt import SpeechToText
-from optimizations.gpu_optimizations import clear_cache
-

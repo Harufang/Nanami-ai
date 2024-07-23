@@ -1,22 +1,29 @@
-from gtts import gTTS
-import tempfile
-import os
+import torch
+import requests
+from transformers import AutoTokenizer
 
 class TextToSpeech:
-    def __init__(self, tts_model_name):
-        self.tts_model_name = tts_model_name  # Conservez le nom du modèle s'il y a une logique spécifique à ce modèle
-        # gTTS n'a pas besoin d'initialisation avec un modèle ici, donc vous pouvez ajuster selon vos besoins
-        # Par exemple, vous pouvez initialiser des paramètres supplémentaires si nécessaire
+    def __init__(self, model_name, device=None, token=None):
+        self.device = device if device else torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.token = token
+        self.api_url = f"https://api-inference.huggingface.co/models/{model_name}"
+        self.headers = {"Authorization": f"Bearer {self.token}"}
+        try:
+            self.tokenizer = AutoTokenizer.from_pretrained(model_name, use_auth_token=token)
+        except Exception as e:
+            raise RuntimeError(f"Error during TTS model setup: {e}")
+
+    def query(self, payload):
+        response = requests.post(self.api_url, headers=self.headers, json=payload)
+        if response.status_code != 200:
+            raise RuntimeError(f"Error querying the API: {response.status_code} {response.text}")
+        return response.content
 
     def synthesize(self, text):
-        tts = gTTS(text=text, lang='en')  # Utilisation de gTTS pour générer la parole
-        # Enregistrez le résultat dans un fichier temporaire
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as temp_file:
-            temp_filename = temp_file.name
-            tts.save(temp_filename)
-            # Vous pouvez retourner le chemin du fichier ou lire le fichier en mémoire
-            with open(temp_filename, 'rb') as audio_file:
-                audio_data = audio_file.read()
-        
-        os.remove(temp_filename)  # Supprimer le fichier temporaire après utilisation
-        return audio_data
+        try:
+            audio_bytes = self.query({
+                "inputs": text,
+            })
+            return audio_bytes
+        except Exception as e:
+            raise RuntimeError(f"Error during synthesis: {e}")

@@ -1,37 +1,32 @@
-import os
-import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from speech_to_text.stt import SpeechToText
-from text_to_speech.tts import TextToSpeech
+from speech_to_text import SpeechToText
+from text_to_speech import TextToSpeech
 from optimizations.gpu_optimizations import accelerator, optimize_memory, enable_mixed_precision
 from accelerate import Accelerator
-from torch.cuda.amp import autocast, GradScaler
+import torch
+import IPython.display as ipd
 
-accelerator = Accelerator()
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-# Setting environment variables for CUDA memory management
-os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'garbage_collection_threshold:0.6,max_split_size_mb:4096,expandable_segments:True'
-os.environ['USE_FP16'] = '1'  # This is not standard and may not affect Accelerator directly but is used in some contexts for clarity.
-
-def process_data():
-    with enable_mixed_precision():
-        # Process your data using operations that benefit from mixed precision
-        pass
-
-    optimize_memory()  # Call after heavy GPU usage
-    
 class Chatbot:
     def __init__(self, stt_model_name, tts_model_name, llama_model_name, token):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.accelerator = Accelerator()
 
         self.stt = SpeechToText(stt_model_name, self.device)
-        self.tts = TextToSpeech(tts_model_name)  # Pass the device to the TTS class
+        self.tts = TextToSpeech(tts_model_name, self.device, token)
+
+        torch.cuda.empty_cache()
 
         self.tokenizer = AutoTokenizer.from_pretrained(llama_model_name, use_auth_token=token)
-        self.model = AutoModelForCausalLM.from_pretrained(llama_model_name, use_auth_token=token, low_cpu_mem_usage=True)
-        self.model.to(self.device).half()  # Ensure model is on the correct device and use half precision
+        
+        try:
+            self.model = AutoModelForCausalLM.from_pretrained(llama_model_name, use_auth_token=token, low_cpu_mem_usage=True)
+            self.model.to(self.device).half()
+        except RuntimeError as e:
+            if "out of memory" in str(e):
+                print("CUDA out of memory. Clearing cache and retrying...")
+                torch.cuda.empty_cache()
+                self.model.to(self.device).half()
+
         self.model = self.accelerator.prepare(self.model)
         self.model.eval()
 
@@ -49,7 +44,7 @@ class Chatbot:
         attention_mask = torch.ones(inputs.shape, device=self.device)
         
         with torch.no_grad():
-            with enable_mixed_precision():  # Use mixed precision for better performance
+            with enable_mixed_precision():
                 outputs = self.model.generate(
                     input_ids=inputs,
                     attention_mask=attention_mask,
@@ -62,14 +57,12 @@ class Chatbot:
         return response
 
     def safe_generate_response(self, text):
-        """Attempts to generate a response, adjusting parameters if a memory error occurs."""
         try:
             return self.generate_response(text)
         except RuntimeError as e:
             if "out of memory" in str(e):
                 print("Encountered CUDA out of memory. Trying to clear cache and reduce sequence length...")
                 torch.cuda.empty_cache()
-                # Adjust model parameters or simplify the task as needed
-                self.model.config.max_length = 50  # Example adjustment
+                self.model.config.max_length = 50
                 return self.generate_response(text)
-            raise  # Re-raise the exception if it's not a memory issue
+            raise

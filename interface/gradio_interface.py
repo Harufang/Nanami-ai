@@ -5,22 +5,12 @@ from optimizations.gpu_optimizations import clear_cache
 import speech_recognition as sr
 import threading
 import os
-from optimizations.gpu_optimizations import enable_mixed_precision, optimize_memory
-from optimizations.gpu_optimizations import clear_cache
-
-def process_data():
-    with enable_mixed_precision():
-        # Process your data using operations that benefit from mixed precision
-        pass
-
-    optimize_memory()  # Call after heavy GPU usage
-
-HUGGINGFACE_TOKEN = os.getenv('HUGGINGFACE_TOKEN')
+import IPython.display as ipd
 
 MODEL_NAME_STT = "openai/whisper-large"
-MODEL_NAME_TTS = "tts_model_name"
-LLAMA_MODEL_NAME = "meta-llama/Meta-Llama-3-8B-Instruct"  # Assurez-vous que c'est le bon identifiant de modèle
-HUGGINGFACE_TOKEN = "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"  # Remplacez par votre token Hugging Face
+MODEL_NAME_TTS = "suno/bark"  # Example model
+LLAMA_MODEL_NAME = "meta-llama/Meta-Llama-3-8B-Instruct"
+HUGGINGFACE_TOKEN = os.getenv('HUGGINGFACE_TOKEN')
 
 chatbot = Chatbot(MODEL_NAME_STT, MODEL_NAME_TTS, LLAMA_MODEL_NAME, HUGGINGFACE_TOKEN)
 yt_trainer = YouTubeTraining("downloaded_videos/")
@@ -40,7 +30,7 @@ def listen_and_respond():
                 f.write(audio.get_wav_data())
             response = chatbot.process_audio(audio_path)
             clear_cache()
-            return response
+            return ipd.Audio(response)
         except sr.WaitTimeoutError:
             return "Temps d'attente dépassé. Réessayez."
         except sr.UnknownValueError:
