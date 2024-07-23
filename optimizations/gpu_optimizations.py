@@ -1,48 +1,61 @@
 import os
 import torch
 from accelerate import Accelerator
+from torch.cuda.amp import autocast
+from torch.cuda.amp import autocast
 
 # Define environment variables for better GPU memory management
 os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'garbage_collection_threshold:0.6,max_split_size_mb:4096'
 
-# Initialize Accelerator with mixed precision enabled
-accelerator = Accelerator(mixed_precision="fp16")  # or "fp32" if you don't want mixed precision
+# Initialize Accelerator with mixed precision
+accelerator = Accelerator()
 
 # Using Accelerator to manage the device setup automatically
 device = accelerator.device
 
-def liberer_memoire_gpu():
-    """Clear GPU cache."""
-    if torch.cuda.is_available():  # Check if CUDA is available
+def enable_mixed_precision():
+    """Return an autocast context manager to enable mixed precision."""
+    return autocast()
+
+def clear_cache():
+    """Clears the GPU memory cache."""
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        torch.cuda.synchronize()
+
+def optimize_memory():
+    """Clear unused memory from the GPU cache."""
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        torch.cuda.synchronize()
+
+def clear_gpu_cache():
+    """Immediately clears GPU cache to free up memory."""
+    if torch.cuda.is_available():
         torch.cuda.empty_cache()
         torch.cuda.synchronize()
     else:
         print("CUDA is not available. Cannot clear GPU cache.")
 
-def clear_cache():
-    """Clear cache to free up memory and synchronize."""
-    liberer_memoire_gpu()
-
-def optimize_memory():
-    """Clears CUDA memory cache."""
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-        
-def enable_mixed_precision():
-    """Enable CUDA mixed precision via autocast."""
-    return torch.amp.autocast('cuda')
-
-# Example usage in a model
 def train_model(model, inputs):
-    """Prepare model and inputs with Accelerator and perform training."""
+    """Prepare model and inputs with Accelerator and perform training with autocast."""
     model, inputs = accelerator.prepare(model, inputs)
-    with autocast():  # Use autocast for the scope of this function
+    with autocast():
         outputs = model(inputs)
     return outputs
 
-# If you need to use autocast manually in some parts of your code
-def some_computation():
-    """Perform computation under autocast to utilize mixed precision."""
-    with autocast():  # Correctly using autocast without specifying device_type
-        # computation logic here
+def perform_computation():
+    """Perform computation using autocast to utilize mixed precision for efficiency."""
+    with autocast():
+        # Add computation logic here
         pass
+
+def manage_gpu_resources():
+    """Manages GPU resources by clearing cached memory regularly."""
+    clear_gpu_cache()  # Clear cached memory
+    # Optionally, add more comprehensive GPU management strategies here
+
+def optimize_gpu_settings():
+    """Optimize GPU settings for allocation to minimize fragmentation."""
+    os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'garbage_collection_threshold:0.6,max_split_size_mb:128'
+    clear_gpu_cache()  # Apply new settings by clearing cache again

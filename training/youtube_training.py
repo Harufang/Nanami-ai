@@ -1,4 +1,12 @@
 import os
+from optimizations.gpu_optimizations import enable_mixed_precision, optimize_memory
+
+def process_data():
+    with enable_mixed_precision():
+        # Process your data using operations that benefit from mixed precision
+        pass
+
+    optimize_memory()  # Call after heavy GPU usage
 
 class YouTubeTraining:
     def __init__(self, download_path):

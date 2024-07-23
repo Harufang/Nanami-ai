@@ -5,6 +5,15 @@ from optimizations.gpu_optimizations import clear_cache
 import speech_recognition as sr
 import threading
 import os
+from optimizations.gpu_optimizations import enable_mixed_precision, optimize_memory
+from optimizations.gpu_optimizations import clear_cache
+
+def process_data():
+    with enable_mixed_precision():
+        # Process your data using operations that benefit from mixed precision
+        pass
+
+    optimize_memory()  # Call after heavy GPU usage
 
 HUGGINGFACE_TOKEN = os.getenv('HUGGINGFACE_TOKEN')
 
