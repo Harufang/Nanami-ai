@@ -17,11 +17,11 @@ def process_data():
     optimize_memory()  # Call after heavy GPU usage
 
 class SpeechToText:
-    def __init__(self, model_name):
+    def __init__(self, model_name, device=None):
         self.device = accelerator.device
         try:
             self.processor = WhisperProcessor.from_pretrained(model_name)
-            self.model = WhisperForConditionalGeneration.from_pretrained(model_name)
+            self.model = WhisperForConditionalGeneration.from_pretrained(model_name).to(self.device)  # Move model to device
             self.model = accelerator.prepare(self.model)
             self.model.to(self.device)
             self.model.eval()
@@ -39,7 +39,8 @@ class SpeechToText:
         waveform, original_sampling_rate = self.load_audio_efficiently(audio_path)
         if original_sampling_rate != sampling_rate:
             resampler = torchaudio.transforms.Resample(orig_freq=original_sampling_rate, new_freq=sampling_rate)
-            waveform = resampler(waveform)
+            waveform, original_sampling_rate = torchaudio.load(audio_path, normalize=True)
+            waveform = waveform.to(self.device)
 
         try:
             with torch.cuda.amp.autocast():  # Ensuring autocast is applied correctly

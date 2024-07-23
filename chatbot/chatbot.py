@@ -24,9 +24,10 @@ def process_data():
     
 class Chatbot:
     def __init__(self, stt_model_name, tts_model_name, llama_model_name, token):
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # Make sure to use the set device
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.accelerator = Accelerator()
-        self.stt = SpeechToText(stt_model_name).to(self.device)
+        # Initialize SpeechToText with the device
+        self.stt = SpeechToText(stt_model_name, self.device)
         self.tts = TextToSpeech(tts_model_name).to(self.device)
         self.tokenizer = AutoTokenizer.from_pretrained(llama_model_name, use_auth_token=token)
         self.model = AutoModelForCausalLM.from_pretrained(llama_model_name, use_auth_token=token, low_cpu_mem_usage=True)
