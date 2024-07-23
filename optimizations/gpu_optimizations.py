@@ -2,7 +2,6 @@ import os
 import torch
 from accelerate import Accelerator
 from torch.cuda.amp import autocast
-from torch.cuda.amp import autocast
 
 # Define environment variables for better GPU memory management
 os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'garbage_collection_threshold:0.6,max_split_size_mb:4096'
@@ -13,8 +12,14 @@ accelerator = Accelerator()
 # Using Accelerator to manage the device setup automatically
 device = accelerator.device
 
+def liberer_memoire_gpu():
+    """Clear GPU cache."""
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        torch.cuda.synchronize()
+
 def enable_mixed_precision():
-    """Return an autocast context manager to enable mixed precision."""
+    """Enable CUDA mixed precision via autocast."""
     return autocast()
 
 def clear_cache():
@@ -28,6 +33,7 @@ def optimize_memory():
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
         torch.cuda.synchronize()
+        os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'garbage_collection_threshold:0.6,max_split_size_mb:128'
 
 def clear_gpu_cache():
     """Immediately clears GPU cache to free up memory."""

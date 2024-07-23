@@ -12,12 +12,19 @@ class SpeechToText:
         self.device = device if device else torch.device("cuda" if torch.cuda.is_available() else "cpu")
         try:
             self.processor = WhisperProcessor.from_pretrained(model_name)
-            self.model = WhisperForConditionalGeneration.from_pretrained(model_name)
+            self.model = WhisperForConditionalGeneration.from_pretrained(model_name).to(self.device)  # Move model to the device
             self.model = accelerator.prepare(self.model)  # Prepare model with Accelerator
             self.model.to(self.device)  # Ensure model is on the correct device
             self.model.eval()
         except Exception as e:
             raise RuntimeError(f"Error during model setup: {e}")
+    
+    def synthesize(self, text):
+            # Example processing; ensure tensors are on the correct device
+            input_tensor = torch.tensor([text]).to(self.device)
+            with torch.no_grad():
+                output = self.model(input_tensor)  # Synthesize speech from text
+            return output
 
     def load_audio_efficiently(self, file_path, sampling_rate=16000):
         waveform, original_sampling_rate = torchaudio.load(file_path, normalize=True)
@@ -62,6 +69,7 @@ class SpeechToText:
         finally:
             optimize_memory()  # Optimize memory after heavy operations
 
+    
 # Example usage:
 # stt = SpeechToText("facebook/wav2vec2-base-960h", device=torch.device('cuda'))
 # transcription = stt.transcribe("path/to/audio/file.wav")
