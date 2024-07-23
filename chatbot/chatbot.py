@@ -1,10 +1,11 @@
-from transformers import AutoModelForCausalLM, AutoTokenizer
 from speech_to_text import SpeechToText
 from text_to_speech import TextToSpeech
 from optimizations.gpu_optimizations import accelerator, optimize_memory, enable_mixed_precision
 from accelerate import Accelerator
 import torch
 import IPython.display as ipd
+from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import get_linear_schedule_with_warmup
 
 class Chatbot:
     def __init__(self, stt_model_name, tts_model_name, llama_model_name, token):
@@ -20,12 +21,16 @@ class Chatbot:
         
         try:
             self.model = AutoModelForCausalLM.from_pretrained(llama_model_name, use_auth_token=token, low_cpu_mem_usage=True)
+            self.model.gradient_checkpointing_enable()  # Enable gradient checkpointing
             self.model.to(self.device).half()
         except RuntimeError as e:
             if "out of memory" in str(e):
                 print("CUDA out of memory. Clearing cache and retrying...")
                 torch.cuda.empty_cache()
                 self.model.to(self.device).half()
+
+        self.model = self.accelerator.prepare(self.model)
+        self.model.eval()
 
         self.model = self.accelerator.prepare(self.model)
         self.model.eval()

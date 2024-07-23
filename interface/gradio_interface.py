@@ -8,7 +8,7 @@ import os
 import IPython.display as ipd
 
 MODEL_NAME_STT = "openai/whisper-large"
-MODEL_NAME_TTS = "suno/bark"  # Example model
+MODEL_NAME_TTS = "suno/bark"
 LLAMA_MODEL_NAME = "meta-llama/Meta-Llama-3-8B-Instruct"
 HUGGINGFACE_TOKEN = os.getenv('HUGGINGFACE_TOKEN')
 
