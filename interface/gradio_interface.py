@@ -4,10 +4,13 @@ from training.youtube_training import YouTubeTraining
 from optimizations.gpu_optimizations import clear_cache
 import speech_recognition as sr
 import threading
+import os
+
+HUGGINGFACE_TOKEN = os.getenv('HUGGINGFACE_TOKEN')
 
 MODEL_NAME_STT = "openai/whisper-large"
 MODEL_NAME_TTS = "tts_model_name"
-LLAMA_MODEL_NAME = "meta-llama/Llama-2-7B-hf"  # Assurez-vous que c'est le bon identifiant de modèle
+LLAMA_MODEL_NAME = "meta-llama/Meta-Llama-3-8B-Instruct"  # Assurez-vous que c'est le bon identifiant de modèle
 HUGGINGFACE_TOKEN = "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"  # Remplacez par votre token Hugging Face
 
 chatbot = Chatbot(MODEL_NAME_STT, MODEL_NAME_TTS, LLAMA_MODEL_NAME, HUGGINGFACE_TOKEN)

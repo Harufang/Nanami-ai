@@ -25,11 +25,12 @@ class Chatbot:
             optimize_memory()
 
     def generate_response(self, text):
+        """Generate a response from the text input using the model."""
+        inputs = self.tokenizer.encode(text, return_tensors="pt").to(self.device)
+        attention_mask = torch.ones(inputs.shape, device=self.device)
         try:
-            inputs = self.tokenizer.encode(text, return_tensors="pt").to(accelerator.device)
-            attention_mask = torch.ones(inputs.shape, device=accelerator.device)
             with torch.no_grad():
-                with enable_mixed_precision():
+                with enable_mixed_precision():  # Use the updated autocast
                     outputs = self.model.generate(
                         input_ids=inputs,
                         attention_mask=attention_mask,
