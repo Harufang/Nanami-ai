@@ -7,8 +7,8 @@ import threading
 
 MODEL_NAME_STT = "openai/whisper-large"
 MODEL_NAME_TTS = "tts_model_name"
-LLAMA_MODEL_NAME = "meta-llama/Llama-3-8B-Instruct"
-HUGGINGFACE_TOKEN = "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"  # Remplacez ceci par votre token Hugging Face
+LLAMA_MODEL_NAME = "meta-llama/Llama-3-7B"  # Remplacez avec un modèle public connu
+HUGGINGFACE_TOKEN = "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"  # Remplacez par votre token Hugging Face
 
 chatbot = Chatbot(MODEL_NAME_STT, MODEL_NAME_TTS, LLAMA_MODEL_NAME, HUGGINGFACE_TOKEN)
 yt_trainer = YouTubeTraining("downloaded_videos/")
