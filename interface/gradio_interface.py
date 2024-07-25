@@ -5,7 +5,7 @@ from optimizations.gpu_optimizations import clear_cache
 import speech_recognition as sr
 import threading
 import os
-import IPython.display as ipd
+from pydub import AudioSegment
 
 MODEL_NAME_STT = "openai/whisper-large"
 MODEL_NAME_TTS = "suno/bark"
@@ -28,9 +28,14 @@ def listen_and_respond():
             audio_path = "temp_audio.wav"
             with open(audio_path, "wb") as f:
                 f.write(audio.get_wav_data())
+
+            # Ensure the file is saved as a proper WAV format
+            audio_segment = AudioSegment.from_wav(audio_path)
+            audio_segment.export(audio_path, format="wav")
+
             response = chatbot.process_audio(audio_path)
             clear_cache()
-            return ipd.Audio(response)
+            return response
         except sr.WaitTimeoutError:
             return "Temps d'attente dépassé. Réessayez."
         except sr.UnknownValueError:

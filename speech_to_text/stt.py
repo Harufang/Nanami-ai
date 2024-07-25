@@ -1,25 +1,31 @@
 import os
 import torch
-import torchaudio
 from transformers import WhisperProcessor, WhisperForConditionalGeneration
-from optimizations.gpu_optimizations import accelerator, optimize_memory
+from optimizations.gpu_optimizations import accelerator, optimize_memory, enable_mixed_precision
+from pydub import AudioSegment
+from io import BytesIO
 
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
 class SpeechToText:
     def __init__(self, model_name, device=None):
-        self.device = device
+        self.device = device or accelerator.device
         try:
             self.processor = WhisperProcessor.from_pretrained(model_name)
-            self.model = WhisperForConditionalGeneration.from_pretrained(model_name).to(self.device).half()
+            self.model = WhisperForConditionalGeneration.from_pretrained(model_name).to(self.device)
             self.model = accelerator.prepare(self.model)
+            self.model.to(self.device)
             self.model.eval()
         except Exception as e:
             raise RuntimeError(f"Error during model setup: {e}")
 
     def load_audio_efficiently(self, file_path):
-        waveform, sr = torchaudio.load(file_path)
-        return waveform.to(self.device), sr
+        # Use pydub to load and convert the audio file
+        audio = AudioSegment.from_file(file_path)
+        audio = audio.set_frame_rate(16000).set_channels(1)
+        audio_samples = audio.get_array_of_samples()
+        waveform = torch.tensor(audio_samples).float().div(32768.0).view(1, -1)
+        return waveform.to(self.device), 16000
 
     def transcribe(self, audio_path, sampling_rate=16000):
         if not os.path.isfile(audio_path):
@@ -33,7 +39,7 @@ class SpeechToText:
         try:
             with torch.cuda.amp.autocast():
                 audio_input = self.processor(
-                    waveform.squeeze(0),
+                    waveform.squeeze(0).numpy(),
                     sampling_rate=sampling_rate,
                     return_tensors="pt",
                     language='en'
@@ -51,7 +57,7 @@ class SpeechToText:
                         no_repeat_ngram_size=2,
                         pad_token_id=self.processor.tokenizer.pad_token_id
                     )
-
+            
             transcription = self.processor.batch_decode(generated_ids, skip_special_tokens=True)
             return transcription[0]
         except Exception as e:

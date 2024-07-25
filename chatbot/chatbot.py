@@ -4,7 +4,6 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from speech_to_text import SpeechToText
 from text_to_speech import TextToSpeech
 from optimizations.gpu_optimizations import accelerator, optimize_memory, enable_mixed_precision
-from torch.cuda.amp import autocast, GradScaler
 
 class Chatbot:
     def __init__(self, stt_model_name, tts_model_name, llama_model_name, token):
@@ -13,22 +12,30 @@ class Chatbot:
 
         self.stt = SpeechToText(stt_model_name, self.device)
         self.tts = TextToSpeech(tts_model_name, token)
-        
+
         # Clear cache before loading the model
         torch.cuda.empty_cache()
-        
+
         self.tokenizer = AutoTokenizer.from_pretrained(llama_model_name, use_auth_token=token)
-        
+
         try:
             # Load the model in CPU first
             self.model = AutoModelForCausalLM.from_pretrained(llama_model_name, use_auth_token=token, low_cpu_mem_usage=True)
+            self.model = torch.quantization.quantize_dynamic(
+                self.model, {torch.nn.Linear}, dtype=torch.qint8
+            )
             torch.cuda.empty_cache()  # Clear cache before moving to GPU
             self.model.to(self.device).half()
+
+            # Apply gradient checkpointing
+            self.model.gradient_checkpointing_enable()
+
         except RuntimeError as e:
             if "out of memory" in str(e):
                 print("CUDA out of memory. Clearing cache and retrying...")
                 torch.cuda.empty_cache()
-                self.model.to(self.device).half()
+                self.model = self.model.cpu().half()  # Move to CPU before clearing cache and retrying
+                self.model.to(self.device)
             else:
                 raise e
 
@@ -47,10 +54,9 @@ class Chatbot:
     def generate_response(self, text):
         inputs = self.tokenizer.encode(text, return_tensors="pt").to(self.device)
         attention_mask = torch.ones(inputs.shape, device=self.device)
-        scaler = GradScaler()
-        
+
         with torch.no_grad():
-            with autocast():
+            with enable_mixed_precision():
                 outputs = self.model.generate(
                     input_ids=inputs,
                     attention_mask=attention_mask,
