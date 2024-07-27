@@ -2,16 +2,14 @@ import os
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from speech_to_text import SpeechToText
-from text_to_speech import TextToSpeech
 from optimizations.gpu_optimizations import accelerator, optimize_memory, enable_mixed_precision
 
 class Chatbot:
-    def __init__(self, stt_model_name, tts_model_name, llama_model_name, token):
+    def __init__(self, stt_model_name, llama_model_name, token):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.accelerator = accelerator
 
         self.stt = SpeechToText(stt_model_name, self.device)
-        self.tts = TextToSpeech(tts_model_name, token)
 
         # Clear cache before loading the model
         torch.cuda.empty_cache()
@@ -46,8 +44,8 @@ class Chatbot:
         try:
             text = self.stt.transcribe(audio_path)
             response = self.safe_generate_response(text)
-            audio_response = self.tts.synthesize(response)
-            return audio_response
+            # Return the response text directly instead of generating audio
+            return response
         finally:
             optimize_memory()
 

@@ -8,11 +8,10 @@ import os
 from pydub import AudioSegment
 
 MODEL_NAME_STT = "openai/whisper-large"
-MODEL_NAME_TTS = "suno/bark"
 LLAMA_MODEL_NAME = "meta-llama/Meta-Llama-3-8B-Instruct"
 HUGGINGFACE_TOKEN = os.getenv('HUGGINGFACE_TOKEN')
 
-chatbot = Chatbot(MODEL_NAME_STT, MODEL_NAME_TTS, LLAMA_MODEL_NAME, HUGGINGFACE_TOKEN)
+chatbot = Chatbot(MODEL_NAME_STT, LLAMA_MODEL_NAME, HUGGINGFACE_TOKEN)
 yt_trainer = YouTubeTraining("downloaded_videos/")
 
 recognizer = sr.Recognizer()
@@ -64,7 +63,7 @@ def main():
             def start_conversation():
                 threading.Thread(target=continuous_chat).start()
 
-            start_button.click(fn=start_conversation, inputs=None, outputs=None)
+            start_button.click(fn=start_conversation, inputs=None, outputs=chat_output)
 
         with gr.Tab("YouTube Training"):
             url_input = gr.Textbox(label="YouTube URL")

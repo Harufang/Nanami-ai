@@ -3,7 +3,7 @@ import torch
 from transformers import WhisperProcessor, WhisperForConditionalGeneration
 from optimizations.gpu_optimizations import accelerator, optimize_memory, enable_mixed_precision
 from pydub import AudioSegment
-from io import BytesIO
+import torchaudio
 
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
@@ -39,7 +39,7 @@ class SpeechToText:
         try:
             with torch.cuda.amp.autocast():
                 audio_input = self.processor(
-                    waveform.squeeze(0).numpy(),
+                    waveform.squeeze(0).cpu().numpy(),
                     sampling_rate=sampling_rate,
                     return_tensors="pt",
                     language='en'
