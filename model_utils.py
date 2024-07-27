@@ -1,7 +1,7 @@
 # model_utils.py
 import torch
+import torch.nn as nn
 from transformers import AutoTokenizer, AutoModelForCausalLM
-import transformers
 
 class ShardedModel:
     def __init__(self, model_name, device_ids):
@@ -14,18 +14,31 @@ class ShardedModel:
         self.shard_model()
 
     def shard_model(self):
-        # Shard the model across the available devices
         num_devices = len(self.device_ids)
-        self.sharded_models = []
-        model_parts = torch.nn.ModuleList(self.full_model.transformer.h).split(num_devices)
+        self.sharded_models = nn.ModuleList()
+
+        # Access model's transformer or encoder layers correctly
+        model_layers = self.full_model.get_encoder() if hasattr(self.full_model, 'get_encoder') else self.full_model.base_model
         
+        # Check for attribute name adjustments
+        if hasattr(model_layers, 'layers'):
+            layers = model_layers.layers
+        elif hasattr(model_layers, 'transformer') and hasattr(model_layers.transformer, 'h'):
+            layers = model_layers.transformer.h
+        else:
+            raise AttributeError("Model does not have an expected attribute for layers.")
+        
+        num_layers = len(layers)
+        layers_per_device = num_layers // num_devices
         for i in range(num_devices):
-            model_part = torch.nn.ModuleList(model_parts[i])
-            model_part.to(self.devices[i])
-            self.sharded_models.append(model_part)
+            start = i * layers_per_device
+            end = (i + 1) * layers_per_device if i != num_devices - 1 else num_layers
+            
+            device_model = nn.ModuleList(layers[start:end])
+            device_model = device_model.to(self.devices[i])  # Ensure model is correctly moved to the GPU
+            self.sharded_models.append(device_model)
 
     def forward(self, input_ids, attention_mask=None):
-        # Forward pass through the sharded models
         outputs = []
         for i, model_part in enumerate(self.sharded_models):
             input_ids = input_ids.to(self.devices[i])
@@ -34,7 +47,6 @@ class ShardedModel:
             output = model_part(input_ids, attention_mask=attention_mask)
             outputs.append(output)
         
-        # Combine the outputs from different shards
         return torch.cat([out.logits for out in outputs], dim=-1)
 
     def generate(self, input_text):
