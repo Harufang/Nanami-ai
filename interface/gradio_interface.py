@@ -1,7 +1,6 @@
 import gradio as gr
 from chatbot.chatbot import Chatbot
 from training.youtube_training import YouTubeTraining
-from optimizations.gpu_optimizations import clear_cache
 import speech_recognition as sr
 import threading
 import os

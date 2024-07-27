@@ -1,36 +1,28 @@
-import os
 import torch
-from accelerate import Accelerator
-from torch.cuda.amp import autocast
 
-# Define environment variables for better GPU memory management
-os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'garbage_collection_threshold:0.6,max_split_size_mb:4096,expandable_segments:True'
+class GPUAccelerator:
+    def __init__(self):
+        self.scaler = torch.cuda.amp.GradScaler()
 
-# Initialize Accelerator with mixed precision enabled
-accelerator = Accelerator(mixed_precision="fp16")
+    def prepare(self, model):
+        return model
 
-# Using Accelerator to manage the device setup automatically
-device = accelerator.device
+    def step(self, optimizer, loss):
+        self.scaler.scale(loss).backward()
+        self.scaler.step(optimizer)
+        self.scaler.update()
 
-def liberer_memoire_gpu():
-    """Clear GPU cache."""
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-        torch.cuda.synchronize()
-    else:
-        print("CUDA is not available. Cannot clear GPU cache.")
+    def enable_mixed_precision(self):
+        return torch.cuda.amp.autocast()
 
-def clear_cache():
-    """Clear cache to free up memory and synchronize."""
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-        torch.cuda.synchronize()
+accelerator = GPUAccelerator()
 
 def optimize_memory():
-    """Optimize memory allocation settings."""
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
+    torch.cuda.empty_cache()
 
 def enable_mixed_precision():
-    """Enable CUDA mixed precision via autocast."""
-    return autocast()
+    return accelerator.enable_mixed_precision()
+
+def check_memory():
+    if torch.cuda.memory_allocated() > torch.cuda.get_device_properties(0).total_memory * 0.9:
+        optimize_memory()
